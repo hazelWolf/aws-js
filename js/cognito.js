@@ -1,45 +1,65 @@
-
-
 (function CognitoSignIn() {
     var config = config = {
-    "username" : "",
-    "password" : "",
-    "clientId" : "",
-    "userPoolId" : "",
-    "identityPoolId" : "",
-    "region" : "us-east-1",
-    "bucket" : "",
-    "key" : "sample.json"
-}
+        "username": "",
+        "password": "",
+        "clientId": "",
+        "userPoolId": "",
+        "identityPoolId": "",
+        "region": "us-east-1",
+        "bucket": "",
+        "key": "sample.json"
+    }
     var poolData = {
-        UserPoolId: config.userPoolId, // your user pool id here ''
-        ClientId: config.clientId// your app client id here'
+        UserPoolId: "", // your user pool id here ''
+        ClientId: ""// your app client id here'
     };
     var userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
     //------------------Authentication-------------------------
     var userData = {
-        Username: config.username, // your username here
+        Username: "", // your username here
         Pool: userPool
     };
     var authenticationData = {
-        Username: config.username, // your username here
-        Password: config.password, // your password here
+        Username: "", // your username here
+        Password: "", // your password here
     };
     var authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
     cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
     cognitoUser.authenticateUser(authenticationDetails, {
+
         onSuccess: function (result) {
             console.log(JSON.stringify(result));
             _idTok = result.getIdToken().getJwtToken()
             _accessTok = result.getAccessToken().getJwtToken()
             _refreshTok = result.getRefreshToken()
-            getCognitoIdentityCredentials("us-east-1", "<user-pool-id>", result.getIdToken().getJwtToken(), "<identity-pool-id>")
+            getCognitoIdentityCredentials("us-east-1", "<user-pool>", result.getIdToken().getJwtToken(), "<identity-pool>")
         },
-        onFailure: function (err) {
-            console.log(JSON.stringify(err));
+        onFailure: function (err, data) {
+            console.log(err);
+            console.log(JSON.stringify(data));
+            console.log(cognitoUser);
+            var params = {
+                ChallengeName: 'NEW_PASSWORD_REQUIRED',
+                ClientId: '<clinet-id>',
+                ChallengeResponses: {
+                    USERNAME: '',
+                    NEW_PASSWORD: '', // updated password
+                },
+                Session: cognitoUser.Session
+            };
+            var cognitoidentityserviceprovider = new AWS.CognitoIdentityServiceProvider({ "region": "us-easet-1" });
+            cognitoidentityserviceprovider.respondToAuthChallenge(params, function (err, result) {
+                if (err) console.log(err, err.stack); // an error occurred
+                else {
+                    console.log(result);
+                    // successful response
+                }
+            });
         }
     });
+
 }());
 
 function getCognitoIdentityCredentials(region, userPoolId, idToken, identityPoolId, result) {
@@ -266,43 +286,43 @@ function Sign(url,) {
     console.log(a.host);
     console.log(a.pathname);
     console.log(hashString(""));
-   var canonical = canonicalRequest(a.pathname, a.host);
+    var canonical = canonicalRequest(a.pathname, a.host);
     console.log(canonical);
     var toSign = requestToSign(canonical, date);
     console.log(toSign);
     var signature = Signature(toSign, date);
     console.log(signature);
     var auth = "AWS4-HMAC-SHA256 Credential=" + access + "/" + shortDate + "/us-east-1/s3/aws4_request,SignedHeaders=host;x-amz-content-sha256;x-amz-date;x-amz-security-token,Signature=" + signature;
-    fetchData(url,auth,a.host,this.hashString(""), longDate)
+    fetchData(url, auth, a.host, this.hashString(""), longDate)
 }
-var canonicalRequest = function(pathname, host) {
-    return "GET" + '\n' + pathname + '\n' + "" + '\nhost:' + host + '\n' + ("x-amz-content-sha256:" + this.hashString("")) + '\n' + ('x-amz-date:' + longDate + '\nx-amz-security-token:' + session+ '\n\n') + ('host;x-amz-content-sha256;x-amz-date;x-amz-security-token\n') + this.hashString("");
-  }
+var canonicalRequest = function (pathname, host) {
+    return "GET" + '\n' + pathname + '\n' + "" + '\nhost:' + host + '\n' + ("x-amz-content-sha256:" + this.hashString("")) + '\n' + ('x-amz-date:' + longDate + '\nx-amz-security-token:' + session + '\n\n') + ('host;x-amz-content-sha256;x-amz-date;x-amz-security-token\n') + this.hashString("");
+}
 
-var requestToSign = function(cRequest) {
+var requestToSign = function (cRequest) {
     return 'AWS4-HMAC-SHA256\n' + longDate + '\n' + shortDate + '/' + 'us-east-1' + '/s3/aws4_request\n' + this.hashString(cRequest);
-  }
+}
 
-var Signature = function(toSign) {
+var Signature = function (toSign) {
     console.log(this.hmac(this.hmac(this.hmac(this.hmac('AWS4' + secret, shortDate), 'us-east-1'), 's3'), 'aws4_request'));
     console.log(toSign);
     return this.hmac(this.hmac(this.hmac(this.hmac(this.hmac('AWS4' + secret, shortDate), 'us-east-1'), 's3'), 'aws4_request'), toSign).toString();
-  }
-var hashString = function(str) {
+}
+var hashString = function (str) {
     return CryptoJS.SHA256(str).toString();
-  }
+}
 
-var hmac = function(key, data) {
+var hmac = function (key, data) {
     return CryptoJS.HmacSHA256(data, key);
-  }
+}
 
-var   amzShortDate = function(date) {
+var amzShortDate = function (date) {
     return this.amzLongDate(date).substr(0, 8);
-  }
+}
 
-var amzLongDate = function(date) {
+var amzLongDate = function (date) {
     return date.toISOString().replace(/[:\-]|\.\d{3}/g, '').substr(0, 17);
-  }
+}
 function getSignatureKey(key, dateStamp, regionName, serviceName) {
     var data = [];
     for (var i = 0; i < ("AWS4" + key).length; i++) {
@@ -320,9 +340,9 @@ function getSignatureKey(key, dateStamp, regionName, serviceName) {
     return kSigning;
 }
 
-function fetchData(url, auth, host, content, date){
+function fetchData(url, auth, host, content, date) {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET',url);
+    xhr.open('GET', url);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("host", host);
     xhr.setRequestHeader("X-Amz-Content-Sha256", content);
